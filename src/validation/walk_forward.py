@@ -8,11 +8,13 @@ class WalkForwardValidator:
         Splits the 6-month data into 3 rolling windows.
         A strategy MUST have a positive Inverted EV in all 3 slices to pass.
         """
-        slices = np.array_split(df, n_slices)
+        # Calculate split indices for np.array_split equivalent on DataFrame
+        n = len(df)
+        indices = np.array_split(range(n), n_slices)
         slice_results = []
 
-        for i in range(len(slices)):
-            test_slice = slices[i]
+        for i in range(len(indices)):
+            test_slice = df.iloc[indices[i]]
             
             # Predict failures on this slice
             probs = model.predict(test_slice[features])

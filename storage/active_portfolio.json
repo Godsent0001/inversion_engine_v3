@@ -1,0 +1,362 @@
+[
+    {
+        "id": "XAU_INV_0",
+        "params": {
+            "num_leaves": 27,
+            "learning_rate": 0.024437750569067516,
+            "feature_fraction": 0.5153941584191406,
+            "min_data_in_leaf": 41
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.95,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_1",
+        "params": {
+            "num_leaves": 41,
+            "learning_rate": 0.0428834946785844,
+            "feature_fraction": 0.860444046134982,
+            "min_data_in_leaf": 30
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.297,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_2",
+        "params": {
+            "num_leaves": 35,
+            "learning_rate": 0.01072893733613147,
+            "feature_fraction": 0.989670873948896,
+            "min_data_in_leaf": 30
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.95,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_3",
+        "params": {
+            "num_leaves": 8,
+            "learning_rate": 0.06505661803315584,
+            "feature_fraction": 0.5005217010882412,
+            "min_data_in_leaf": 46
+        },
+        "mc_limit": 5.2,
+        "expected_ev": 0.45,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_4",
+        "params": {
+            "num_leaves": 10,
+            "learning_rate": 0.040557805734415114,
+            "feature_fraction": 0.706237967937518,
+            "min_data_in_leaf": 76
+        },
+        "mc_limit": 2.05,
+        "expected_ev": 0.575,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_5",
+        "params": {
+            "num_leaves": 48,
+            "learning_rate": 0.059998244333910614,
+            "feature_fraction": 0.8459680983220199,
+            "min_data_in_leaf": 28
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.285,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_6",
+        "params": {
+            "num_leaves": 52,
+            "learning_rate": 0.031798200157645326,
+            "feature_fraction": 0.8977507278406422,
+            "min_data_in_leaf": 79
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.312,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_7",
+        "params": {
+            "num_leaves": 24,
+            "learning_rate": 0.08452926316718515,
+            "feature_fraction": 0.990205707520154,
+            "min_data_in_leaf": 52
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.322,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_8",
+        "params": {
+            "num_leaves": 33,
+            "learning_rate": 0.023938916886605856,
+            "feature_fraction": 0.6840670039808048,
+            "min_data_in_leaf": 64
+        },
+        "mc_limit": 5.2,
+        "expected_ev": 0.95,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_9",
+        "params": {
+            "num_leaves": 13,
+            "learning_rate": 0.045914815225623774,
+            "feature_fraction": 0.5419656539736136,
+            "min_data_in_leaf": 69
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.7,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_10",
+        "params": {
+            "num_leaves": 64,
+            "learning_rate": 0.054774780983988046,
+            "feature_fraction": 0.9841560743507122,
+            "min_data_in_leaf": 20
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.291,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_11",
+        "params": {
+            "num_leaves": 28,
+            "learning_rate": 0.027304437590454714,
+            "feature_fraction": 0.9471203887517566,
+            "min_data_in_leaf": 85
+        },
+        "mc_limit": 7.4,
+        "expected_ev": 0.783,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_12",
+        "params": {
+            "num_leaves": 42,
+            "learning_rate": 0.09483901225900095,
+            "feature_fraction": 0.942295615512839,
+            "min_data_in_leaf": 87
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.228,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_13",
+        "params": {
+            "num_leaves": 42,
+            "learning_rate": 0.023862756103860436,
+            "feature_fraction": 0.9206985544215689,
+            "min_data_in_leaf": 91
+        },
+        "mc_limit": 4.11,
+        "expected_ev": 0.583,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_14",
+        "params": {
+            "num_leaves": 39,
+            "learning_rate": 0.028533942771249085,
+            "feature_fraction": 0.7855271705191047,
+            "min_data_in_leaf": 31
+        },
+        "mc_limit": 4.4,
+        "expected_ev": 0.35,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_15",
+        "params": {
+            "num_leaves": 16,
+            "learning_rate": 0.02848697904848195,
+            "feature_fraction": 0.9984227889007795,
+            "min_data_in_leaf": 79
+        },
+        "mc_limit": 5.2,
+        "expected_ev": 0.521,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_16",
+        "params": {
+            "num_leaves": 36,
+            "learning_rate": 0.08650638074843921,
+            "feature_fraction": 0.6716932592946322,
+            "min_data_in_leaf": 75
+        },
+        "mc_limit": 5.35,
+        "expected_ev": 0.203,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_17",
+        "params": {
+            "num_leaves": 11,
+            "learning_rate": 0.050741515315563764,
+            "feature_fraction": 0.6249938307318544,
+            "min_data_in_leaf": 45
+        },
+        "mc_limit": 4.25,
+        "expected_ev": 0.521,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_18",
+        "params": {
+            "num_leaves": 23,
+            "learning_rate": 0.027590445644886046,
+            "feature_fraction": 0.7756344508085051,
+            "min_data_in_leaf": 88
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.521,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_19",
+        "params": {
+            "num_leaves": 43,
+            "learning_rate": 0.019171364776327096,
+            "feature_fraction": 0.9777078128598833,
+            "min_data_in_leaf": 88
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.55,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_20",
+        "params": {
+            "num_leaves": 28,
+            "learning_rate": 0.022173908867474276,
+            "feature_fraction": 0.6731910624858317,
+            "min_data_in_leaf": 86
+        },
+        "mc_limit": 6.3,
+        "expected_ev": 0.719,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_21",
+        "params": {
+            "num_leaves": 63,
+            "learning_rate": 0.013175956070237162,
+            "feature_fraction": 0.6270722234252128,
+            "min_data_in_leaf": 98
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.719,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_22",
+        "params": {
+            "num_leaves": 12,
+            "learning_rate": 0.03872784761964888,
+            "feature_fraction": 0.9481821033499396,
+            "min_data_in_leaf": 81
+        },
+        "mc_limit": 5.21,
+        "expected_ev": 0.597,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_23",
+        "params": {
+            "num_leaves": 63,
+            "learning_rate": 0.0173275053734116,
+            "feature_fraction": 0.7197180012696274,
+            "min_data_in_leaf": 99
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.792,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_24",
+        "params": {
+            "num_leaves": 40,
+            "learning_rate": 0.03791233156970209,
+            "feature_fraction": 0.6866197799235252,
+            "min_data_in_leaf": 99
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.181,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_25",
+        "params": {
+            "num_leaves": 19,
+            "learning_rate": 0.028041900133224006,
+            "feature_fraction": 0.5033388019388685,
+            "min_data_in_leaf": 46
+        },
+        "mc_limit": 4.25,
+        "expected_ev": 0.55,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_26",
+        "params": {
+            "num_leaves": 14,
+            "learning_rate": 0.029183108487974202,
+            "feature_fraction": 0.7971227655898443,
+            "min_data_in_leaf": 86
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.669,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_27",
+        "params": {
+            "num_leaves": 16,
+            "learning_rate": 0.025520191813785127,
+            "feature_fraction": 0.8966904444740436,
+            "min_data_in_leaf": 35
+        },
+        "mc_limit": 4.1,
+        "expected_ev": 0.95,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_28",
+        "params": {
+            "num_leaves": 51,
+            "learning_rate": 0.018422456640976616,
+            "feature_fraction": 0.9987444530377589,
+            "min_data_in_leaf": 91
+        },
+        "mc_limit": 6.15,
+        "expected_ev": 0.47,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_INV_29",
+        "params": {
+            "num_leaves": 23,
+            "learning_rate": 0.043103787625020824,
+            "feature_fraction": 0.7949385169058575,
+            "min_data_in_leaf": 65
+        },
+        "mc_limit": 5.2,
+        "expected_ev": 0.417,
+        "status": "ACTIVE"
+    }
+]
