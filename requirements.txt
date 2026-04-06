@@ -1,0 +1,9 @@
+pandas
+numpy
+pandas_ta
+lightgbm
+optuna
+polars
+pyyaml
+matplotlib
+scikit-learn

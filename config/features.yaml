@@ -1,0 +1,21 @@
+# --- INDICATOR INPUTS FOR LIGHTGBM ---
+
+# Core First-Principle Features
+primary_features:
+  - "market_energy"            # 0-100 Intensity (Volatility)
+  - "energy_slope"             # Is energy increasing or decreasing?
+  - "mpo"                      # -100 to +100 Market Pressure Oscillator
+  - "mpo_bias"                 # Structure Bias component of MPO
+  - "compression_index"        # How 'tight' the price is coiling
+
+# Contextual Retail "Noise" Features (To find their failures)
+retail_features:
+  - "rsi_14"                   # Standard Overbought/Oversold
+  - "atr_ratio"                # Current volatility vs 20-period average
+  - "bb_width"                 # Bollinger Band expansion/contraction
+  - "candle_body_ratio"        # Size of body vs wicks
+
+# Time-Based Features (Gold's NY/London Session Bias)
+session_features:
+  - "hour_of_day"
+  - "is_ny_open"               # 1 if during high-volume NY hours
