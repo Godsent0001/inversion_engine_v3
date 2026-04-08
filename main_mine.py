@@ -4,6 +4,7 @@ import optuna
 import yaml
 import json
 import os
+import lightgbm as lgb
 from src.data.loader import DataLoader
 from src.data.sampler import CandidateSampler
 from src.features.ta_factory import TAFactory
@@ -42,6 +43,10 @@ def objective(trial, sampled_data):
         'verbose': -1
     }
     
+    # DYNAMIC ATR MULTIPLIER (The "Spread Shield")
+    # We set a floor of 6.0 to ensure the Stop Loss is wide enough for Gold spreads.
+    atr_mult = trial.suggest_float('atr_multiplier', 6.0, 15.0)
+    
     # Split Sampled Data into Train (85%) and Test (15%)
     split = int(len(sampled_data) * config['train_test_split'])
     train_df = sampled_data.iloc[:split]
@@ -57,11 +62,13 @@ def objective(trial, sampled_data):
     
     # Calculate Inverted EV on Test Data
     probs = model.predict(test_df[features])
-    # Flip the losers: If prob > 0.75, assume it fails and do opposite
+    
+    # Logic: If prob of failure >= 75%, we do the opposite.
+    # We use the dynamic multiplier from this specific trial.
     returns = np.where(probs >= 0.75, -test_df['outcome_r'], 0)
     
-    # We subtract the SPREAD TAX (0.05R) from every active trade
-    net_returns = returns[returns != 0] - config['spread_tax_r']
+    # SPREAD TAX (0.15R): Account for Bid/Ask gap + Slippage on Gold
+    net_returns = returns[returns != 0] - 0.15
     
     return np.mean(net_returns) if len(net_returns) > 5 else -1
 
@@ -69,6 +76,7 @@ def objective(trial, sampled_data):
 def start_mining():
     portfolio = []
     strategy_id = 0
+    os.makedirs("storage/models", exist_ok=True)
     
     while len(portfolio) < config['portfolio_size']:
         print(f"\n🚀 --- HUNTING FOR STRATEGY #{len(portfolio) + 1} ---")
@@ -77,29 +85,36 @@ def start_mining():
         candidates = CandidateSampler.get_random_candidates(df_enriched)
         labeled_data = EVLabeler.label_candidates(df_enriched, candidates)
         
-        # Bayesian Search for the best Failure Logic
+        # Bayesian Search for the best Failure Logic + ATR Multiplier
         study = optuna.create_study(direction='maximize')
-        study.optimize(lambda t: objective(t, labeled_data), n_trials=30)
+        study.optimize(lambda t: objective(t, labeled_data), n_trials=40)
         
         best_params = study.best_params
         best_ev = study.best_value
         
+        # Only proceed if the Inverted EV is high enough after the 0.15R tax
         if best_ev > config['min_inverted_alpha_r']:
-            # A. Train Final Model
             features = feat_config['primary_features'] + feat_config['retail_features']
-            final_mapper = LGBMFailureMapper(best_params)
+            
+            # Extract the AI params separate from the multiplier
+            ai_params = {k: v for k, v in best_params.items() if k != 'atr_multiplier'}
+            atr_mult = best_params['atr_multiplier']
+
+            final_mapper = LGBMFailureMapper(ai_params)
             y = (labeled_data['outcome_r'] < 0).astype(int)
             final_model = final_mapper.train_failure_map(labeled_data[features], y)
             
             # B. Walk-Forward Validation (3-Stage Adaptivity Test)
-            wfa = WalkForwardValidator.validate_robustness(final_model, labeled_data, features)
+            # Passing the dynamic multiplier to the validator
+            wfa = WalkForwardValidator.validate_robustness(final_model, labeled_data, features, multiplier=atr_mult)
             
             if wfa:
                 # C. Monte Carlo 12R Test
                 mc = MonteCarloSimulator()
-                # Get the hypothetical trade returns for MC
                 probs = final_model.predict(labeled_data[features])
-                trades = np.where(probs >= 0.75, -labeled_data['outcome_r'] - 0.05, 0)
+                
+                # Apply the 0.15R Tax to the simulation for reality check
+                trades = np.where(probs >= 0.75, -labeled_data['outcome_r'] - 0.15, 0)
                 active_trades = trades[trades != 0]
                 
                 limit = mc.get_max_drawdown_limit(active_trades)
@@ -108,28 +123,30 @@ def start_mining():
                     # HIRED!
                     strategy_data = {
                         'id': f"XAU_INV_{strategy_id}",
-                        'params': best_params,
+                        'params': ai_params,
+                        'atr_multiplier': round(atr_mult, 2),
                         'mc_limit': round(limit, 2),
                         'expected_ev': round(best_ev, 3),
                         'status': 'ACTIVE'
                     }
                     portfolio.append(strategy_data)
-                    # Save Model Binary
+                    
+                    # Save Model Binary (LightGBM format)
                     final_model.save_model(f"storage/models/strat_{strategy_id}.txt")
                     strategy_id += 1
-                    print(f"✅ HIRED! EV: {best_ev:.3f} | MC Limit: {limit:.1f}R")
+                    print(f"✅ HIRED! EV: {best_ev:.3f} | ATR Mult: {atr_mult:.1f} | MC Limit: {limit:.1f}R")
                 else:
                     print(f"❌ REJECTED: MC Limit {limit:.1f}R exceeds 12R cap.")
             else:
                 print("❌ REJECTED: Failed Walk-Forward Robustness.")
         else:
-            print(f"❌ REJECTED: Low EV ({best_ev:.3f})")
+            print(f"❌ REJECTED: Low EV ({best_ev:.3f} after 0.15R tax)")
 
     # SAVE FINAL PORTFOLIO JSON
     with open("storage/active_portfolio.json", "w") as f:
         json.dump(portfolio, f, indent=4)
     
-    print("\n🏁 MINING COMPLETE. 30 Strategies Hired and Saved.")
+    print("\n🏁 MINING COMPLETE. 30 Strategies Hired and Saved with High-ATR Protection.")
 
 if __name__ == "__main__":
     start_mining()
