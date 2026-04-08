@@ -32,7 +32,7 @@ df_enriched = meo.apply(df_raw)
 df_enriched = mpo.apply(df_enriched)
 
 # 2. DEFINE THE SEARCH (OPTUNA BAYESIAN)
-def objective(trial, sampled_data):
+def objective(trial, raw_candidates):
     # Optuna picks the "Failure Logic"
     params = {
         'num_leaves': trial.suggest_int('num_leaves', 8, 64),
@@ -47,6 +47,9 @@ def objective(trial, sampled_data):
     # We set a floor of 6.0 to ensure the Stop Loss is wide enough for Gold spreads.
     atr_mult = trial.suggest_float('atr_multiplier', 6.0, 15.0)
     
+    # Re-label data with the suggested multiplier
+    sampled_data = EVLabeler.label_candidates(df_enriched, raw_candidates.copy(), atr_mult=atr_mult)
+
     # Split Sampled Data into Train (85%) and Test (15%)
     split = int(len(sampled_data) * config['train_test_split'])
     train_df = sampled_data.iloc[:split]
@@ -67,8 +70,9 @@ def objective(trial, sampled_data):
     # We use the dynamic multiplier from this specific trial.
     returns = np.where(probs >= 0.75, -test_df['outcome_r'], 0)
     
-    # SPREAD TAX (0.15R): Account for Bid/Ask gap + Slippage on Gold
-    net_returns = returns[returns != 0] - 0.15
+    # SPREAD TAX: Account for Bid/Ask gap + Slippage on Gold
+    active_returns = returns[returns != 0]
+    net_returns = active_returns - config['spread_tax_r']
     
     return np.mean(net_returns) if len(net_returns) > 5 else -1
 
@@ -77,22 +81,22 @@ def start_mining():
     portfolio = []
     strategy_id = 0
     os.makedirs("storage/models", exist_ok=True)
+    os.makedirs("storage/active_portfolio", exist_ok=True)
     
     while len(portfolio) < config['portfolio_size']:
         print(f"\n🚀 --- HUNTING FOR STRATEGY #{len(portfolio) + 1} ---")
         
         # Fresh Sampling for every strategy to ensure lack of correlation
         candidates = CandidateSampler.get_random_candidates(df_enriched)
-        labeled_data = EVLabeler.label_candidates(df_enriched, candidates)
         
         # Bayesian Search for the best Failure Logic + ATR Multiplier
         study = optuna.create_study(direction='maximize')
-        study.optimize(lambda t: objective(t, labeled_data), n_trials=40)
+        study.optimize(lambda t: objective(t, candidates), n_trials=40)
         
         best_params = study.best_params
         best_ev = study.best_value
         
-        # Only proceed if the Inverted EV is high enough after the 0.15R tax
+        # Only proceed if the Inverted EV is high enough after the tax
         if best_ev > config['min_inverted_alpha_r']:
             features = feat_config['primary_features'] + feat_config['retail_features']
             
@@ -100,21 +104,27 @@ def start_mining():
             ai_params = {k: v for k, v in best_params.items() if k != 'atr_multiplier'}
             atr_mult = best_params['atr_multiplier']
 
+            # Final label with the best multiplier
+            final_labeled_data = EVLabeler.label_candidates(df_enriched, candidates.copy(), atr_mult=atr_mult)
+
             final_mapper = LGBMFailureMapper(ai_params)
-            y = (labeled_data['outcome_r'] < 0).astype(int)
-            final_model = final_mapper.train_failure_map(labeled_data[features], y)
+            y = (final_labeled_data['outcome_r'] < 0).astype(int)
+            final_model = final_mapper.train_failure_map(final_labeled_data[features], y)
             
             # B. Walk-Forward Validation (3-Stage Adaptivity Test)
-            # Passing the dynamic multiplier to the validator
-            wfa = WalkForwardValidator.validate_robustness(final_model, labeled_data, features, multiplier=atr_mult)
+            # Passing the dynamic multiplier and config spread tax to the validator
+            wfa = WalkForwardValidator.validate_robustness(
+                final_model, final_labeled_data, features,
+                multiplier=atr_mult, spread_tax=config['spread_tax_r']
+            )
             
             if wfa:
                 # C. Monte Carlo 12R Test
                 mc = MonteCarloSimulator()
-                probs = final_model.predict(labeled_data[features])
+                probs = final_model.predict(final_labeled_data[features])
                 
-                # Apply the 0.15R Tax to the simulation for reality check
-                trades = np.where(probs >= 0.75, -labeled_data['outcome_r'] - 0.15, 0)
+                # Apply the Spread Tax to the simulation for reality check
+                trades = np.where(probs >= 0.75, -final_labeled_data['outcome_r'] - config['spread_tax_r'], 0)
                 active_trades = trades[trades != 0]
                 
                 limit = mc.get_max_drawdown_limit(active_trades)
@@ -140,13 +150,17 @@ def start_mining():
             else:
                 print("❌ REJECTED: Failed Walk-Forward Robustness.")
         else:
-            print(f"❌ REJECTED: Low EV ({best_ev:.3f} after 0.15R tax)")
+            print(f"❌ REJECTED: Low EV ({best_ev:.3f} after tax)")
 
     # SAVE FINAL PORTFOLIO JSON
     with open("storage/active_portfolio.json", "w") as f:
         json.dump(portfolio, f, indent=4)
     
-    print("\n🏁 MINING COMPLETE. 30 Strategies Hired and Saved with High-ATR Protection.")
+    # ALSO SAVE AS PICKLE FOR AUDIT/EXECUTE
+    portfolio_df = pd.DataFrame(portfolio)
+    portfolio_df.to_pickle("storage/active_portfolio/full_steam_30.pkl")
+
+    print(f"\n🏁 MINING COMPLETE. {config['portfolio_size']} Strategies Hired and Saved with High-ATR Protection.")
 
 if __name__ == "__main__":
     start_mining()

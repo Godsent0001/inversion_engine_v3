@@ -5,10 +5,10 @@ def run_audit():
     with open("config/settings.yaml", 'r') as f:
         config = yaml.safe_load(f)
 
-    portfolio = pd.read_pickle("storage/active_portfolio/full_steam_30.pkl")
+    portfolio_df = pd.read_pickle("storage/active_portfolio/full_steam_30.pkl")
     fired_count = 0
 
-    for strategy in portfolio:
+    for idx, strategy in portfolio_df.iterrows():
         # Check current live drawdown (from audit_logs)
         current_dd = strategy.get('live_drawdown', 0)
         
@@ -19,7 +19,7 @@ def run_audit():
             
     if fired_count > 0:
         # Save updated portfolio and trigger main_mine.py to replace them
-        pd.to_pickle(portfolio, "storage/active_portfolio/full_steam_30.pkl")
+        portfolio_df.to_pickle("storage/active_portfolio/full_steam_30.pkl")
         print(f"♻️ {fired_count} strategies terminated. Run main_mine.py to refill.")
 
 if __name__ == "__main__":
