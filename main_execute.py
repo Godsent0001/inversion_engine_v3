@@ -5,11 +5,12 @@ import pandas as pd
 
 def live_execution_loop():
     # Load the 30 "Hired" Experts
-    portfolio = pd.read_pickle("storage/active_portfolio/full_steam_30.pkl")
+    portfolio_df = pd.read_pickle("storage/active_portfolio/full_steam_30.pkl")
     risk_engine = RiskEngine(account_balance=50000) # Set your balance
     sig_gen = SignalGenerator(failure_threshold=0.75)
 
     print("🚀 Inversion Engine Live. Monitoring XAUUSD 5m...")
+    print(f"Loaded {len(portfolio_df)} strategies.")
 
     while True:
         # 1. Wait for candle close (every 5 mins)
@@ -19,7 +20,7 @@ def live_execution_loop():
         # feature_row = get_latest_data() 
         
         # 3. Poll all 30 strategies
-        for strategy in portfolio:
+        for idx, strategy in portfolio_df.iterrows():
             if strategy['status'] == 'ACTIVE':
                 # signal = sig_gen.generate_inverted_signal(...)
                 # if signal:
