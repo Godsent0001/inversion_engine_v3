@@ -1,21 +1,26 @@
-# --- INDICATOR INPUTS FOR LIGHTGBM ---
+# --- INDICATOR INPUTS FOR LIGHTGBM V4 ---
 
-# Core First-Principle Features
+# Core First-Principle Features (The "Physics" of the move)
 primary_features:
-  - "market_energy"            # 0-100 Intensity (Volatility)
-  - "energy_slope"             # Is energy increasing or decreasing?
-  - "mpo"                      # -100 to +100 Market Pressure Oscillator
-  - "mpo_bias"                 # Structure Bias component of MPO
-  - "compression_index"        # How 'tight' the price is coiling
+  - "market_energy"            # 0-100 Intensity (Volatility/Momentum)
+  - "energy_slope"             # Rate of change in market energy
+  - "mpo"                      # Market Pressure Oscillator (Trend Intensity)
+  - "mpo_bias"                 # Directional structural bias
+  - "compression_index"        # Price coiling vs. expansion state
 
-# Contextual Retail "Noise" Features (To find their failures)
+# Directional Logic (CRITICAL FOR V4)
+# This tells the AI if it's looking at a "Retail Buy Attempt" or "Retail Sell Attempt"
+direction_logic:
+  - "side"                     # 1 = Retail Buying, 0 = Retail Selling
+
+# Contextual Retail "Noise" Features (To find where the crowd gets trapped)
 retail_features:
-  - "rsi_14"                   # Standard Overbought/Oversold
-  - "atr_ratio"                # Current volatility vs 20-period average
-  - "bb_width"                 # Bollinger Band expansion/contraction
-  - "candle_body_ratio"        # Size of body vs wicks
+  - "rsi_14"                   # Momentum exhaustion indicator
+  - "atr_ratio"                # Current ATR vs. 20-period average ATR
+  - "bb_width"                 # Bollinger Band width (volatility cycle)
+  - "candle_body_ratio"        # Price action signature (Body vs. Wicks)
 
-# Time-Based Features (Gold's NY/London Session Bias)
+# Time-Based Features (Gold's specific liquidity cycles)
 session_features:
-  - "hour_of_day"
-  - "is_ny_open"               # 1 if during high-volume NY hours
+  - "hour_of_day"              # 0-23 Hour
+  - "is_ny_open"               # 1 during NY Session peak (13:00 - 17:00 UTC)

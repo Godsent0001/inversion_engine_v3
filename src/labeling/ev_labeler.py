@@ -3,45 +3,77 @@ import numpy as np
 
 class EVLabeler:
     @staticmethod
-    def label_candidates(df: pd.DataFrame, candidates: pd.DataFrame, rrr=2.0, atr_mult=2.0):
+    def label_single(df: pd.DataFrame, idx: int, atr_mult: float, rrr: float, side: int):
         """
-        For every candidate, check if it hits TP or SL first.
-        Outcome is recorded in 'R-multiples'.
-        -1.0 = Hit SL
-        +2.0 = Hit TP
+        Labels a single candle for a specific side (1=Buy, 0=Sell).
+        Returns a Series containing features + the target (failure) + inverted outcome.
         """
-        results = []
-        prices = df['close'].values
-        highs = df['high'].values
-        lows = df['low'].values
-        indices = df.index
+        # Get entry details
+        row = df.loc[idx].copy()
+        entry_price = row['close']
+        atr = row['atr']
         
-        # Process each candidate (entry point)
-        for idx, row in candidates.iterrows():
-            entry_price = row['close']
-            atr = row['atr']
-            
-            # SL and TP levels based on ATR
-            sl_dist = atr * atr_mult
-            tp_dist = sl_dist * rrr
-            
-            sl_price = entry_price - sl_dist # For a LONG dummy
+        # Calculate SL and TP distances
+        sl_dist = atr * atr_mult
+        tp_dist = sl_dist * rrr
+        
+        # Set boundaries based on side
+        if side == 1:  # Retail tries to BUY
+            sl_price = entry_price - sl_dist
             tp_price = entry_price + tp_dist
+        else:          # Retail tries to SELL
+            sl_price = entry_price + sl_dist
+            tp_price = entry_price - tp_dist
             
-            # Look forward in time to find exit
-            outcome = 0
-            start_pos = df.index.get_loc(idx) + 1
-            
-            # Scan future candles (up to 200 bars)
-            for i in range(start_pos, min(start_pos + 200, len(df))):
+        # Scan future candles (up to 300 bars for Gold M5)
+        outcome = 0 # 0 = Timed out (ignored by miner)
+        start_pos = df.index.get_loc(idx) + 1
+        future_data = df.iloc[start_pos : start_pos + 300]
+        
+        highs = future_data['high'].values
+        lows = future_data['low'].values
+        
+        for i in range(len(future_data)):
+            if side == 1: # BUY Scenario
                 if lows[i] <= sl_price:
-                    outcome = -1.0 # Loss
+                    outcome = -1.0  # Retail hit SL
                     break
                 if highs[i] >= tp_price:
-                    outcome = rrr # Win
+                    outcome = rrr   # Retail hit TP
                     break
+            else: # SELL Scenario
+                if highs[i] >= sl_price:
+                    outcome = -1.0  # Retail hit SL
+                    break
+                if lows[i] <= tp_price:
+                    outcome = rrr   # Retail hit TP
+                    break
+        
+        # --- THE INVERSION LOGIC ---
+        # Target = 1 means "Retail Failed" (This is what our model predicts)
+        row['target'] = 1 if outcome == -1.0 else 0
+        
+        # Inverted Outcome R:
+        # If retail failed (-1.0), we hit our TP (+RRR)
+        # If retail succeeded (+RRR), we hit our SL (-1.0)
+        if outcome == -1.0:
+            row['inverted_outcome_r'] = rrr
+        elif outcome > 0:
+            row['inverted_outcome_r'] = -1.0
+        else:
+            row['inverted_outcome_r'] = 0
             
-            results.append(outcome)
-            
-        candidates['outcome_r'] = results
-        return candidates
+        row['side'] = side
+        return row
+
+    @staticmethod
+    def label_candidates(df: pd.DataFrame, candidates: pd.DataFrame, atr_mult: float, rrr: float):
+        """
+        Legacy support: Labels a batch of candidates using a fixed side.
+        Used if you want to run traditional single-direction audits.
+        """
+        labeled_results = []
+        for idx in candidates.index:
+            labeled_results.append(EVLabeler.label_single(df, idx, atr_mult, rrr, side=1))
+        
+        return pd.DataFrame(labeled_results)
