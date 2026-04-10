@@ -19,10 +19,16 @@ from src.validation.walk_forward import WalkForwardValidator
 with open("config/settings.yaml", 'r') as f:
     config = yaml.safe_load(f)
 
-with open("config/features.yaml", 'r') as f:
-    feat_config = yaml.safe_load(f)
+# Flatten feature list from yaml - Includes 'side' for directional identity
+FEATURES = (
+    config['primary_features'] + 
+    config['retail_features'] + 
+    config['direction_logic'] + 
+    config['session_features']
+)
 
 # 1. LOAD & ENRICH DATA
+# Ensure xauusd_5m.csv is in data/raw/
 df_raw = DataLoader.load_clean_data("data/raw/xauusd_5m.csv")
 df_raw = TAFactory.add_indicators(df_raw)
 
@@ -33,48 +39,55 @@ df_enriched = mpo.apply(df_enriched)
 
 # 2. DEFINE THE SEARCH (OPTUNA BAYESIAN)
 def objective(trial, raw_candidates):
-    # Optuna picks the "Failure Logic"
+    # Optuna picks AI hyperparameters
     params = {
         'num_leaves': trial.suggest_int('num_leaves', 8, 64),
         'learning_rate': trial.suggest_float('learning_rate', 0.01, 0.1),
         'feature_fraction': trial.suggest_float('feature_fraction', 0.5, 1.0),
-        'min_data_in_leaf': trial.suggest_int('min_data_in_leaf', 20, 100),
         'objective': 'binary',
-        'verbose': -1
+        'verbose': -1,
+        'seed': 42
     }
     
-    # DYNAMIC ATR MULTIPLIER (The "Spread Shield")
-    # We set a floor of 6.0 to ensure the Stop Loss is wide enough for Gold spreads.
-    atr_mult = trial.suggest_float('atr_multiplier', 6.0, 15.0)
+    # Optuna picks the MATH (ATR Multiplier and the Auto-RRR)
+    atr_mult = trial.suggest_float('atr_multiplier', config['min_atr_multiplier'], config['max_atr_multiplier'])
+    rrr = trial.suggest_float('rrr', config['min_rrr'], config['max_rrr'])
     
-    # Re-label data with the suggested multiplier
-    sampled_data = EVLabeler.label_candidates(df_enriched, raw_candidates.copy(), atr_mult=atr_mult)
+    # --- DOUBLE LABELING LOGIC ---
+    # We transform each candidate into TWO scenarios: a Retail Buy and a Retail Sell
+    labeled_list = []
+    for idx in raw_candidates.index:
+        # Scenario 1: Retail attempted a BUY (Side 1) -> AI predicts if it fails
+        labeled_list.append(EVLabeler.label_single(df_enriched, idx, atr_mult, rrr, side=1))
+        # Scenario 2: Retail attempted a SELL (Side 0) -> AI predicts if it fails
+        labeled_list.append(EVLabeler.label_single(df_enriched, idx, atr_mult, rrr, side=0))
 
-    # Split Sampled Data into Train (85%) and Test (15%)
+    sampled_data = pd.DataFrame(labeled_list)
+
+    # Split into Train (85%) and Test (15%)
     split = int(len(sampled_data) * config['train_test_split'])
     train_df = sampled_data.iloc[:split]
     test_df = sampled_data.iloc[split:]
     
-    features = feat_config['primary_features'] + feat_config['retail_features']
-    
-    # Train model to find failures (outcome_r == -1.0)
-    y_train = (train_df['outcome_r'] < 0).astype(int)
-    
+    # Train model to predict FAILURE (target=1 means the trade hit SL)
+    # The 'side' feature tells the model which direction the failure is for.
+    y_train = train_df['target']
     mapper = LGBMFailureMapper(params)
-    model = mapper.train_failure_map(train_df[features], y_train)
+    model = mapper.train_failure_map(train_df[FEATURES], y_train)
     
     # Calculate Inverted EV on Test Data
-    probs = model.predict(test_df[features])
+    probs = model.predict(test_df[FEATURES])
     
-    # Logic: If prob of failure >= 75%, we do the opposite.
-    # We use the dynamic multiplier from this specific trial.
-    returns = np.where(probs >= 0.75, -test_df['outcome_r'], 0)
+    # Logic: If prob of failure >= 75%, we take the INVERTED trade.
+    # Returns test_df['inverted_outcome_r'] (which is the RRR if we win, -1 if we lose)
+    returns = np.where(probs >= 0.75, test_df['inverted_outcome_r'], 0)
     
-    # SPREAD TAX: Account for Bid/Ask gap + Slippage on Gold
+    # Filter for active signals and apply SPREAD TAX (0.15R)
     active_returns = returns[returns != 0]
     net_returns = active_returns - config['spread_tax_r']
     
-    return np.mean(net_returns) if len(net_returns) > 5 else -1
+    # Return mean net profit (Minimum 10 trades to avoid statistical noise)
+    return np.mean(net_returns) if len(active_returns) >= config['min_trades_required'] else -1
 
 # 3. THE MAIN MINING LOOP
 def start_mining():
@@ -83,84 +96,76 @@ def start_mining():
     os.makedirs("storage/models", exist_ok=True)
     os.makedirs("storage/active_portfolio", exist_ok=True)
     
+    print(f"💎 --- STARTING V4 ENGINE MINING --- 💎")
+    print(f"Settings: {config['min_atr_multiplier']}-{config['max_atr_multiplier']} ATR | {config['min_rrr']}-{config['max_rrr']} RRR")
+
     while len(portfolio) < config['portfolio_size']:
-        print(f"\n🚀 --- HUNTING FOR STRATEGY #{len(portfolio) + 1} ---")
+        print(f"\n🚀 [Expert {len(portfolio)+1}/{config['portfolio_size']}] Hunting for high-EV patterns...")
         
-        # Fresh Sampling for every strategy to ensure lack of correlation
-        candidates = CandidateSampler.get_random_candidates(df_enriched)
+        # Pure Random Sampling for diverse "Expert" perspectives
+        candidates = CandidateSampler.get_random_candidates(df_enriched, count=config['random_candidate_count'])
         
-        # Bayesian Search for the best Failure Logic + ATR Multiplier
         study = optuna.create_study(direction='maximize')
         study.optimize(lambda t: objective(t, candidates), n_trials=40)
         
-        best_params = study.best_params
         best_ev = study.best_value
+        best_params = study.best_params
         
-        # Only proceed if the Inverted EV is high enough after the tax
         if best_ev > config['min_inverted_alpha_r']:
-            features = feat_config['primary_features'] + feat_config['retail_features']
-            
-            # Extract the AI params separate from the multiplier
-            ai_params = {k: v for k, v in best_params.items() if k != 'atr_multiplier'}
             atr_mult = best_params['atr_multiplier']
-
-            # Final label with the best multiplier
-            final_labeled_data = EVLabeler.label_candidates(df_enriched, candidates.copy(), atr_mult=atr_mult)
-
+            rrr = best_params['rrr']
+            
+            # Re-generate full labeled data for final training on all candidates
+            final_list = []
+            for idx in candidates.index:
+                final_list.append(EVLabeler.label_single(df_enriched, idx, atr_mult, rrr, side=1))
+                final_list.append(EVLabeler.label_single(df_enriched, idx, atr_mult, rrr, side=0))
+            
+            final_df = pd.DataFrame(final_list)
+            ai_params = {k: v for k, v in best_params.items() if k not in ['atr_multiplier', 'rrr']}
+            
+            # Final Model Build
             final_mapper = LGBMFailureMapper(ai_params)
-            y = (final_labeled_data['outcome_r'] < 0).astype(int)
-            final_model = final_mapper.train_failure_map(final_labeled_data[features], y)
+            final_model = final_mapper.train_failure_map(final_df[FEATURES], final_df['target'])
             
-            # B. Walk-Forward Validation (3-Stage Adaptivity Test)
-            # Passing the dynamic multiplier and config spread tax to the validator
-            wfa = WalkForwardValidator.validate_robustness(
-                final_model, final_labeled_data, features,
-                multiplier=atr_mult, spread_tax=config['spread_tax_r']
-            )
+            # Robustness: Monte Carlo 12R Test
+            mc = MonteCarloSimulator()
+            probs = final_model.predict(final_df[FEATURES])
+            trades = np.where(probs >= 0.75, final_df['inverted_outcome_r'] - config['spread_tax_r'], 0)
+            active_trades = trades[trades != 0]
             
-            if wfa:
-                # C. Monte Carlo 12R Test
-                mc = MonteCarloSimulator()
-                probs = final_model.predict(final_labeled_data[features])
+            limit = mc.get_max_drawdown_limit(active_trades)
+            
+            if limit <= config['max_strategy_drawdown']:
+                # HIRED!
+                strategy_data = {
+                    'id': f"XAU_V4_{strategy_id}",
+                    'atr_multiplier': round(atr_mult, 2),
+                    'rrr': round(rrr, 2),
+                    'mc_limit': round(limit, 2),
+                    'expected_ev': round(best_ev, 3),
+                    'status': 'ACTIVE'
+                }
+                portfolio.append(strategy_data)
                 
-                # Apply the Spread Tax to the simulation for reality check
-                trades = np.where(probs >= 0.75, -final_labeled_data['outcome_r'] - config['spread_tax_r'], 0)
-                active_trades = trades[trades != 0]
-                
-                limit = mc.get_max_drawdown_limit(active_trades)
-                
-                if limit <= 12.0:
-                    # HIRED!
-                    strategy_data = {
-                        'id': f"XAU_INV_{strategy_id}",
-                        'params': ai_params,
-                        'atr_multiplier': round(atr_mult, 2),
-                        'mc_limit': round(limit, 2),
-                        'expected_ev': round(best_ev, 3),
-                        'status': 'ACTIVE'
-                    }
-                    portfolio.append(strategy_data)
-                    
-                    # Save Model Binary (LightGBM format)
-                    final_model.save_model(f"storage/models/strat_{strategy_id}.txt")
-                    strategy_id += 1
-                    print(f"✅ HIRED! EV: {best_ev:.3f} | ATR Mult: {atr_mult:.1f} | MC Limit: {limit:.1f}R")
-                else:
-                    print(f"❌ REJECTED: MC Limit {limit:.1f}R exceeds 12R cap.")
+                # Save Model (.txt format for fast MT5 execution)
+                final_model.save_model(f"storage/models/strat_{strategy_id}.txt")
+                strategy_id += 1
+                print(f"✅ HIRED! EV: {best_ev:.3f} | ATR: {atr_mult:.2f} | RRR: {rrr:.2f} | MC: {limit:.1f}R")
             else:
-                print("❌ REJECTED: Failed Walk-Forward Robustness.")
+                print(f"❌ REJECTED: MC Limit {limit:.1f}R exceeds safety cap.")
         else:
-            print(f"❌ REJECTED: Low EV ({best_ev:.3f} after tax)")
+            print(f"❌ REJECTED: EV {best_ev:.3f} below alpha threshold.")
 
-    # SAVE FINAL PORTFOLIO JSON
-    with open("storage/active_portfolio.json", "w") as f:
-        json.dump(portfolio, f, indent=4)
-    
-    # ALSO SAVE AS PICKLE FOR AUDIT/EXECUTE
+    # Save the League Portfolio
     portfolio_df = pd.DataFrame(portfolio)
     portfolio_df.to_pickle("storage/active_portfolio/full_steam_30.pkl")
+    
+    # Save a human-readable JSON backup
+    with open("storage/active_portfolio/league_summary.json", "w") as f:
+        json.dump(portfolio, f, indent=4)
 
-    print(f"\n🏁 MINING COMPLETE. {config['portfolio_size']} Strategies Hired and Saved with High-ATR Protection.")
+    print(f"\n🏁 MINING COMPLETE. 30 Expert Models are now locked in storage/models/")
 
 if __name__ == "__main__":
     start_mining()

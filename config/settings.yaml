@@ -1,23 +1,53 @@
 # --- GLOBAL ENGINE SETTINGS ---
-project_name: "Inversion Engine v3"
+project_name: "Inversion Engine v4 - Double Label & Auto-RRR"
 symbol: "XAUUSD"
 timeframe: "5m"
 
 # --- MINING PARAMETERS ---
-lookback_months: 6             # The 6-month "Goldilocks" training window
-train_test_split: 0.85         # 85% Train (5.1 months), 15% OOS Test (0.9 months)
-random_candidate_count: 3000   # Randomly sampled candles per month for diversity
+lookback_months: 6             # Training window (re-mine every 3 months for fresh alpha)
+train_test_split: 0.85         # 85% Train, 15% OOS Test
+random_candidate_count: 3000   # Unique candles sampled per expert
+
+# --- MATH OPTIMIZATION (Optuna Search Space) ---
+# ATR Multiplier (Risk Buffer): Professional range for Gold 5m
+min_atr_multiplier: 2.0
+max_atr_multiplier: 5.0
+
+# RRR (Auto-Reward): AI hunts for the best profit target
+min_rrr: 1.5                   # Minimum 1.5R to overcome spread tax
+max_rrr: 4.0                   # Maximum 4.0R for realistic M5 targets
 
 # --- EXECUTION & RISK ---
-risk_per_trade_percent: 1.0    # 1% Risk per trade
-account_buffer_r: 30.0         # Your 30% drawdown "War Chest"
-max_strategy_drawdown: 12.0    # The 12R "Firing" Limit (Monte Carlo Cap)
-portfolio_size: 30             # Total number of uncorrelated "Experts"
+risk_per_trade_percent: 1.0    # 1.0% Risk per trade
+portfolio_size: 30             # The 'League of 30' Diversified Experts
+max_strategy_drawdown: 12.0    # MC Limit Cap (Must be < 12R)
+spread_tax_r: 0.15             # The 0.15R Gold Spread + Slippage Tax
 
-# --- THE SPREAD TAX (XAUUSD 5m) ---
-# We subtract this from every trade outcome to ensure real-world viability
-spread_tax_r: 0.05             # Average spread + slippage in R-multiples
+# --- ALPHA THRESHOLDS ---
+min_inverted_alpha_r: 0.10     # Min net profit per trade AFTER 0.15R tax
+min_trades_required: 10        # Expert must find at least 10 trades in test set
 
-# --- TARGETS ---
-min_trades_per_month: 100      # Strategy must fire 100x/mo to be hired
-min_inverted_alpha_r: 0.10     # Min net profit per trade after spread tax
+# --- FEATURE GROUPS (CRITICAL FOR LGBM DATA MAPPING) ---
+# Primary Physics
+primary_features:
+  - "market_energy"
+  - "energy_slope"
+  - "mpo"
+  - "mpo_bias"
+  - "compression_index"
+
+# Retail Context
+retail_features:
+  - "rsi_14"
+  - "atr_ratio"
+  - "bb_width"
+  - "candle_body_ratio"
+
+# Directional Identity (The V4 Secret Sauce)
+direction_logic:
+  - "side"
+
+# Time/Session Context
+session_features:
+  - "hour_of_day"
+  - "is_ny_open"
