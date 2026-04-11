@@ -6,7 +6,7 @@ class OOSTester:
     def validate(model, test_df, features, threshold=0.75, spread_tax=0.15):
         """
         Validates the expert on the Out-of-Sample (OOS) period.
-        Ensures the strategy survives the 'Spread Tax' and maintains 
+        Ensures the strategy survives the 'Spread Tax' and maintains
         positive Expected Value on unseen data.
         """
         if test_df.empty:
@@ -21,11 +21,11 @@ class OOSTester:
         # We only take trades where the AI is highly confident in a Retail Trap (prob >= 0.75)
         # 'inverted_outcome_r' is already calculated by the EVLabeler (RRR for win, -1 for loss)
         test_df['strat_ret'] = np.where(
-            test_df['prob_fail'] >= threshold, 
-            test_df['inverted_outcome_r'], 
+            test_df['prob_fail'] >= threshold,
+            test_df['inverted_outcome_r'],
             0.0
         )
-        
+
         # 3. Apply the Spread Tax to active trades
         active_trades = test_df[test_df['strat_ret'] != 0].copy()
         active_trades['net_ret'] = active_trades['strat_ret'] - spread_tax

@@ -7,6 +7,7 @@ class EVLabeler:
         """
         Labels a single candle for a specific side (1=Buy, 0=Sell).
         Returns a Series containing features + the target (failure) + inverted outcome.
+        Optimized using NumPy vectorization.
         """
         # Get entry details
         row = df.loc[idx].copy()
@@ -16,53 +17,59 @@ class EVLabeler:
         # Calculate SL and TP distances
         sl_dist = atr * atr_mult
         tp_dist = sl_dist * rrr
-        
-        # Set boundaries based on side
-        if side == 1:  # Retail tries to BUY
-            sl_price = entry_price - sl_dist
-            tp_price = entry_price + tp_dist
-        else:          # Retail tries to SELL
-            sl_price = entry_price + sl_dist
-            tp_price = entry_price - tp_dist
-            
+
         # Scan future candles (up to 300 bars for Gold M5)
-        outcome = 0 # 0 = Timed out (ignored by miner)
         start_pos = df.index.get_loc(idx) + 1
         future_data = df.iloc[start_pos : start_pos + 300]
-        
+
+        if future_data.empty:
+            row['target'] = 0
+            row['inverted_outcome_r'] = 0
+            row['side'] = side
+            return row
+
         highs = future_data['high'].values
         lows = future_data['low'].values
-        
-        for i in range(len(future_data)):
-            if side == 1: # BUY Scenario
-                if lows[i] <= sl_price:
-                    outcome = -1.0  # Retail hit SL
-                    break
-                if highs[i] >= tp_price:
-                    outcome = rrr   # Retail hit TP
-                    break
-            else: # SELL Scenario
-                if highs[i] >= sl_price:
-                    outcome = -1.0  # Retail hit SL
-                    break
-                if lows[i] <= tp_price:
-                    outcome = rrr   # Retail hit TP
-                    break
-        
+
+        outcome = 0
+        if side == 1:  # Retail attempted BUY
+            sl_price = entry_price - sl_dist
+            tp_price = entry_price + tp_dist
+
+            sl_hits = np.where(lows <= sl_price)[0]
+            tp_hits = np.where(highs >= tp_price)[0]
+
+            first_sl = sl_hits[0] if len(sl_hits) > 0 else 1000
+            first_tp = tp_hits[0] if len(tp_hits) > 0 else 1000
+
+            if first_sl < first_tp:
+                outcome = -1.0
+            elif first_tp < first_sl:
+                outcome = rrr
+        else:          # Retail attempted SELL
+            sl_price = entry_price + sl_dist
+            tp_price = entry_price - tp_dist
+
+            sl_hits = np.where(highs >= sl_price)[0]
+            tp_hits = np.where(lows <= tp_price)[0]
+
+            first_sl = sl_hits[0] if len(sl_hits) > 0 else 1000
+            first_tp = tp_hits[0] if len(tp_hits) > 0 else 1000
+
+            if first_sl < first_tp:
+                outcome = -1.0
+            elif first_tp < first_sl:
+                outcome = rrr
+
         # --- THE INVERSION LOGIC ---
-        # Target = 1 means "Retail Failed" (This is what our model predicts)
         row['target'] = 1 if outcome == -1.0 else 0
-        
-        # Inverted Outcome R:
-        # If retail failed (-1.0), we hit our TP (+RRR)
-        # If retail succeeded (+RRR), we hit our SL (-1.0)
         if outcome == -1.0:
             row['inverted_outcome_r'] = rrr
         elif outcome > 0:
             row['inverted_outcome_r'] = -1.0
         else:
             row['inverted_outcome_r'] = 0
-            
+
         row['side'] = side
         return row
 
@@ -75,5 +82,5 @@ class EVLabeler:
         labeled_results = []
         for idx in candidates.index:
             labeled_results.append(EVLabeler.label_single(df, idx, atr_mult, rrr, side=1))
-        
+
         return pd.DataFrame(labeled_results)

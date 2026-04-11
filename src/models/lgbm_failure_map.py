@@ -31,11 +31,11 @@ class LGBMFailureMapper:
         # Define categorical features if they exist in the dataset
         # 'side' and 'is_ny_open' are better treated as categories
         cat_features = [col for col in ['side', 'is_ny_open', 'hour_of_day'] if col in X.columns]
-        
+
         # Create the LightGBM Dataset
         train_data = lgb.Dataset(
-            X, 
-            label=y, 
+            X,
+            label=y,
             categorical_feature=cat_features,
             free_raw_data=False
         )
@@ -43,8 +43,8 @@ class LGBMFailureMapper:
         # Train the model
         # 100 rounds is usually the 'sweet spot' for 5m Gold data to avoid overfitting
         self.model = lgb.train(
-            self.params, 
-            train_data, 
+            self.params,
+            train_data,
             num_boost_round=100
         )
         return self.model

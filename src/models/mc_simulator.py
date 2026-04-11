@@ -3,7 +3,7 @@ import numpy as np
 class MonteCarloSimulator:
     def __init__(self, iterations=1000, confidence=0.95):
         """
-        Simulates 1,000 alternate trading histories to ensure 
+        Simulates 1,000 alternate trading histories to ensure
         the strategy's risk profile is stable.
         """
         self.iterations = iterations
@@ -19,27 +19,27 @@ class MonteCarloSimulator:
 
         max_dds = []
         
-        # We use a fixed seed for the internal loop to keep MC results 
+        # We use a fixed seed for the internal loop to keep MC results
         # consistent for the same input, but allow randomness across iterations.
         for i in range(self.iterations):
             # 1. Shuffle and Resample (Bootstrap)
             # This simulates a different sequence of the same performance stats
             sim_trades = np.random.choice(
-                trade_results_r, 
-                size=len(trade_results_r), 
+                trade_results_r,
+                size=len(trade_results_r),
                 replace=True
             )
             
             # 2. Calculate Equity Curve
             # Starting at 0.0 to track R-multiple drawdown
             equity = np.cumsum(sim_trades)
-            
+
             # 3. Calculate Running High Water Mark (HWM)
             hwm = np.maximum.accumulate(equity)
-            
+
             # 4. Calculate Drawdown from Peak
             drawdown = hwm - equity
-            
+
             # Store the worst peak-to-valley drop of this "alternate life"
             max_dds.append(np.max(drawdown))
         
@@ -55,7 +55,7 @@ class MonteCarloSimulator:
     @staticmethod
     def get_survival_probability(trade_results_r, max_allowed_dd=12.0):
         """
-        Bonus: Calculates the % of simulations that survived without 
+        Bonus: Calculates the % of simulations that survived without
         hitting the 12R cap.
         """
         # ... (Optional extra validation logic) ...

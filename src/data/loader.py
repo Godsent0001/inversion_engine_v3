@@ -49,7 +49,7 @@ class DataLoader:
         # MT5 specific: 'tick_volume' is used for forex/metals instead of 'volume'
         if 'tick_volume' in df.columns:
             df.rename(columns={'tick_volume': 'volume'}, inplace=True)
-            
+
         required = ['open', 'high', 'low', 'close', 'volume']
         for col in required:
             if col not in df.columns:
@@ -58,7 +58,7 @@ class DataLoader:
         # 7. Quality Control
         df = df[required].copy() # Keep only necessary columns
         df.dropna(inplace=True)   # Remove any broken candles
-        
+
         # Ensure numeric types (important for TA-Lib and LGBM)
         for col in required:
             df[col] = pd.to_numeric(df[col], errors='coerce')
