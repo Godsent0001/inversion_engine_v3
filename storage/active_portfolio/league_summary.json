@@ -1,0 +1,138 @@
+[
+    {
+        "id": "XAU_V4_7",
+        "atr_multiplier": 2.75,
+        "rrr": 3.98,
+        "mc_limit": 2.3,
+        "expected_ev": 2.772,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_8",
+        "atr_multiplier": 2.33,
+        "rrr": 3.99,
+        "mc_limit": 5.75,
+        "expected_ev": 2.812,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_9",
+        "atr_multiplier": 2.81,
+        "rrr": 3.96,
+        "mc_limit": 5.9,
+        "expected_ev": 2.818,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_10",
+        "atr_multiplier": 3.31,
+        "rrr": 3.99,
+        "mc_limit": 2.3,
+        "expected_ev": 2.887,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_11",
+        "atr_multiplier": 3.04,
+        "rrr": 3.99,
+        "mc_limit": 1.15,
+        "expected_ev": 2.871,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_12",
+        "atr_multiplier": 2.71,
+        "rrr": 4.0,
+        "mc_limit": 3.45,
+        "expected_ev": 2.99,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_13",
+        "atr_multiplier": 2.09,
+        "rrr": 4.0,
+        "mc_limit": 2.3,
+        "expected_ev": 2.848,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_14",
+        "atr_multiplier": 3.5,
+        "rrr": 3.96,
+        "mc_limit": 0.0,
+        "expected_ev": 2.844,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_15",
+        "atr_multiplier": 3.08,
+        "rrr": 3.96,
+        "mc_limit": 4.6,
+        "expected_ev": 3.007,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_16",
+        "atr_multiplier": 3.66,
+        "rrr": 3.97,
+        "mc_limit": 1.15,
+        "expected_ev": 2.865,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_17",
+        "atr_multiplier": 3.12,
+        "rrr": 3.96,
+        "mc_limit": 1.15,
+        "expected_ev": 2.744,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_18",
+        "atr_multiplier": 4.03,
+        "rrr": 3.96,
+        "mc_limit": 1.15,
+        "expected_ev": 2.769,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_19",
+        "atr_multiplier": 2.81,
+        "rrr": 4.0,
+        "mc_limit": 2.3,
+        "expected_ev": 2.768,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_20",
+        "atr_multiplier": 2.33,
+        "rrr": 4.0,
+        "mc_limit": 5.75,
+        "expected_ev": 2.776,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_21",
+        "atr_multiplier": 3.09,
+        "rrr": 3.98,
+        "mc_limit": 4.6,
+        "expected_ev": 2.803,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_22",
+        "atr_multiplier": 3.25,
+        "rrr": 3.95,
+        "mc_limit": 1.15,
+        "expected_ev": 2.674,
+        "status": "ACTIVE"
+    },
+    {
+        "id": "XAU_V4_23",
+        "atr_multiplier": 2.74,
+        "rrr": 3.99,
+        "mc_limit": 1.15,
+        "expected_ev": 2.851,
+        "status": "ACTIVE"
+    }
+]

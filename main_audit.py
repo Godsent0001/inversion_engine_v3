@@ -19,7 +19,7 @@ def run_audit():
     portfolio_path = "storage/active_portfolio/full_steam_30.pkl"
     reserve_dir = "storage/reserve/"
     model_dir = "storage/models/"
-    
+
     # Ensure directories exist
     os.makedirs(reserve_dir, exist_ok=True)
 
@@ -45,39 +45,39 @@ def run_audit():
         
         # 'live_drawdown' must be updated by your execution/tracker script
         current_dd = strategy.get('live_drawdown', 0.0)
-        
+
         if current_dd >= kill_threshold:
             print(f"🔥 FIRING {strategy['id']}: Drawdown {current_dd:.2f}R exceeded limit of {kill_threshold:.2f}R.")
-            
+
             # 3. HOT-SWAP REPLACEMENT
             # Look for vetted models in the reserve folder (created by a separate mining run)
             reserve_files = sorted([f for f in os.listdir(reserve_dir) if f.endswith('.txt')])
-            
+
             if len(reserve_files) > 0:
                 # Grab the oldest reserve model (First-In, First-Out)
                 new_model_name = reserve_files[0]
                 source_path = os.path.join(reserve_dir, new_model_name)
-                
+
                 # Maintain the file naming convention for the execution engine (e.g., strat_5.txt)
                 # We extract the index from the strategy ID
                 strategy_num = strategy['id'].split('_')[-1]
                 dest_filename = f"strat_{strategy_num}.txt"
                 dest_path = os.path.join(model_dir, dest_filename)
-                
+
                 # Move the reserve model into production
                 shutil.move(source_path, dest_path)
-                
+
                 # Reset Metadata for the new Expert in this slot
                 portfolio_df.at[idx, 'status'] = 'ACTIVE'
-                portfolio_df.at[idx, 'live_drawdown'] = 0.0 
-                portfolio_df.at[idx, 'expected_ev'] = "REPLACED_RESERVE" 
-                
+                portfolio_df.at[idx, 'live_drawdown'] = 0.0
+                portfolio_df.at[idx, 'expected_ev'] = "REPLACED_RESERVE"
+
                 print(f"✅ SUCCESS: Slot {strategy['id']} replaced with fresh model: {new_model_name}")
             else:
                 # No backup available; deactivate the slot to prevent further loss
                 portfolio_df.at[idx, 'status'] = 'TERMINATED'
                 print(f"⚠️ WARNING: No reserve models available. Slot {strategy['id']} is now OFFLINE.")
-            
+
             fired_count += 1
             
     # 4. COMMIT CHANGES

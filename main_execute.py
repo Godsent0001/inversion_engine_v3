@@ -46,7 +46,7 @@ def execute_logic():
 
     portfolio_df = pd.read_pickle(PORTFOLIO_PATH)
     sig_gen = SignalGenerator(failure_threshold=0.75)
-    
+
     print("🚀 Inversion Engine v4 Online. Protection: REQUOTE-RESISTANT & CANDLE-LOCKED.")
 
     while True:
@@ -58,12 +58,12 @@ def execute_logic():
             rates = mt5.copy_rates_from_pos(config['symbol'], mt5.TIMEFRAME_M5, 0, 50)
             df = pd.DataFrame(rates)
             df['time'] = pd.to_datetime(df['time'], unit='s')
-            df = TAFactory.add_indicators(df) 
+            df = TAFactory.add_indicators(df)
             # (Apply Energy/Pressure oscillators here as well)
-            
+
             last_row = df.iloc[-1].to_dict()
             candle_id = str(last_row['time']) # Unique ID for this 5m bar
-            
+
             acc_info = mt5.account_info()
             sym_info = mt5.symbol_info(config['symbol'])
             risk_mgr = RiskEngine(acc_info.balance)
@@ -81,7 +81,7 @@ def execute_logic():
                 model_file = f"{MODEL_STORAGE}strat_{strat_id.split('_')[-1]}.txt"
                 if not os.path.exists(model_file): continue
                 model = lgb.Booster(model_file=model_file)
-                
+
                 signal = sig_gen.generate_v4_signal(model, last_row, strategy, sym_info.bid, last_row['atr'])
 
                 if signal:
@@ -106,7 +106,7 @@ def execute_logic():
 
                     # --- GUARD 2: REQUOTE RETRY ---
                     result = send_order_with_retry(request)
-                    
+
                     if result.retcode == mt5.TRADE_RETCODE_DONE:
                         # LOCK the strategy for the rest of this candle
                         trade_locks[strat_id] = candle_id

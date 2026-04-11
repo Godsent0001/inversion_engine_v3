@@ -32,9 +32,15 @@ class TAFactory:
         df['candle_body_ratio'] = df['body_size'] / (df['total_range'] + 1e-8)
         df['atr_ratio'] = df['atr'] / ta.sma(df['atr'], length=20)
 
+        # 6. Time-based features
+        df.index = pd.to_datetime(df.index)
+        df['hour_of_day'] = df.index.hour
+        # NY Open: Roughly 13:00 to 17:00 UTC (Gold handles high volume here)
+        df['is_ny_open'] = df['hour_of_day'].between(13, 17).astype(int)
+
         # IMPORTANT: SHIFT EVERYTHING BY 1
         # The AI must only see information from the COMPLETED candles.
-        feature_cols = ['atr', 'rsi_14', 'bb_width', 'ema_fast', 'ema_slow', 'candle_body_ratio', 'atr_ratio']
+        feature_cols = ['atr', 'rsi_14', 'bb_width', 'ema_fast', 'ema_slow', 'candle_body_ratio', 'atr_ratio', 'hour_of_day', 'is_ny_open']
         df[feature_cols] = df[feature_cols].shift(1)
         
         return df.dropna()
